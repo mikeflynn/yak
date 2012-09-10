@@ -16,10 +16,10 @@ class Log
 
 		msg = "#{Time.now}: "+msg
 
-		if(@output == 'stdout')
-			puts msg
-		else
+		if(!@output.nil? && @output != 'stdout')
 			File.open(@output, 'w'){ |f| f.write(msg) }
+		else
+			puts msg
 		end
 	end
 end
