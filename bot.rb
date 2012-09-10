@@ -6,39 +6,36 @@ require 'xmpp4r/roster'
 require 'xmpp4r/vcard'
 require 'pp'
 require 'yaml'
+require 'lib/log'
 
 class Yak
 	include Jabber
 
-	attr_accessor :jid, :password, :fullname, :nickname, :photo, :status, :admins, :priority, :api
-	attr_reader :client, :roster	
+	attr_accessor :jid, :password, :fullname, :nickname, :photo, :status, :admins, :priority, :api, :log_file
+	attr_reader :client, :roster, :config, :log
 
 	def initialize(config, debug = false)
+		@log = Log.new(config["log_file"]);
+
 		self.jid = config["username"]
 		self.password = config["password"]
 		self.fullname = config["fullname"]
 		self.nickname = config["nickname"]
 		self.status = config["status"]
 
-		if(config["priority"].empty? == false)
+		if(!config["priority"].nil?)
 			self.priority = config["priority"]
 		else
 			self.priority = 1;
 		end
 
-		if(config["photo"].empty? == false)
+		if(!config["photo"].nil?)
 			self.photo = config["photo"]
 		else
 			self.photo = '';
 		end
 
-		if(config["log_file"].empty? == false)
-			self.log_file = config["log_file"]
-		else
-			self.log_file = 'screen';
-		end
-
-		log("Connecting as "+@fullname+"...");
+		@log.write("Connecting as "+@fullname+"...");
 
 		@client = Client.new(JID::new(self.jid + '/yak'))
 		Jabber::debug = debug
@@ -56,7 +53,7 @@ class Yak
 
 		@roster = Roster::Helper.new(@client)
 
-		log("Client connected!")
+		@log.write("Client connected!")
 	end
 
 	def add_callbacks
@@ -76,15 +73,13 @@ class Yak
 	end
 
 	def signoff
+		@client.close
 
-	end
-
-	def log
-
+		@log.write("Client disconnected.")
 	end
 end
 
-if(ARGV[0] != '') 
+if(!ARGV[0].nil?) 
 	config = YAML.load_file(ARGV[0])
 	bot = Yak.new(config, ARGV[1])
 	Thread.stop
