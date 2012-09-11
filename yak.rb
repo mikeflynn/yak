@@ -7,6 +7,7 @@ require 'xmpp4r/vcard'
 require 'pp'
 require 'yaml'
 require 'lib/log'
+require 'lib/yakfig'
 
 class Yak
 	include Jabber
@@ -14,26 +15,18 @@ class Yak
 	attr_accessor :jid, :password, :fullname, :nickname, :photo, :status, :admins, :priority, :api, :log_file
 	attr_reader :client, :roster, :config, :log
 
-	def initialize(config, debug = false)
-		@log = Log.new(config["log_to"]);
+	def initialize(config_file, debug = false)
+		Yakfig.parse(config_file);
 
-		self.jid = config["username"]
-		self.password = config["password"]
-		self.fullname = config["fullname"]
-		self.nickname = config["nickname"]
-		self.status = config["status"]
+		@log = Log.new(Yakfig.get("log_to", 'stdout'));
 
-		if(!config["priority"].nil?)
-			self.priority = config["priority"]
-		else
-			self.priority = 1;
-		end
-
-		if(!config["photo"].nil?)
-			self.photo = config["photo"]
-		else
-			self.photo = '';
-		end
+		self.jid = Yakfig.get("username")
+		self.password = Yakfig.get("password")
+		self.fullname = Yakfig.get("fullname")
+		self.nickname = Yakfig.get("nickname")
+		self.status = Yakfig.get("status")
+		self.priority = Yakfig.get("priority", 1)
+		self.photo = Yakfig.get("photo", '')
 
 		@log.write("Connecting as '"+@fullname+"'...");
 
@@ -150,8 +143,7 @@ class Yak
 end
 
 if(!ARGV[0].nil?)
-	config = YAML.load_file(ARGV[0])
-	bot = Yak.new(config, ARGV[1])
+	bot = Yak.new(ARGV[0], ARGV[1])
 	Thread.stop
 end
 
