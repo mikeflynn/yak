@@ -6,8 +6,9 @@ require 'xmpp4r/roster'
 require 'xmpp4r/vcard'
 require 'pp'
 require 'yaml'
-require 'lib/log'
-require 'lib/yakfig'
+require './lib/log'
+require './lib/yakfig'
+require './lib/interact'
 
 class Yak
 	include Jabber
@@ -61,7 +62,7 @@ class Yak
 			#x = Presence.new.set_type(:subscribe).set_to(pres.from)
 			#@client.send(x)
 
-			send(pres.from, "Hi new friend! Feel free to ask me some questions.")
+			send(pres.from, "Hi new friend!")
 		end
 
 		@log.write("Starting message callback...")
@@ -70,6 +71,7 @@ class Yak
 		@client.add_message_callback do |t|
 			if(t.body.to_s != '')
 				@log.write("Incoming " + t.type.to_s + " message from " + t.from.to_s + ": " + t.body.to_s)
+				send(t.from.to_s, Interact.greeting())
 			end
 		end
 	end
@@ -142,9 +144,8 @@ class Yak
 	end
 end
 
-if(!ARGV[0].nil?)
-	bot = Yak.new(ARGV[0], ARGV[1])
-	Thread.stop
-end
+
+bot = Yak.new(ARGV[0], ARGV[1])
+Thread.stop
 
 bot.signoff
