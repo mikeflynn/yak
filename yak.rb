@@ -9,6 +9,8 @@ require 'yaml'
 require './lib/log'
 require './lib/yakfig'
 require './lib/interact'
+require './lib/commandHandler'
+require './lib/commandBase'
 
 class Yak
 	include Jabber
@@ -37,6 +39,29 @@ class Yak
 		connect
 		set_metadata(@fullname, @nickname, @photo)
 		callbacks
+
+		@log.write("Auto adding all command plugins in ./commands")
+		auto_register_plugins
+	end
+
+	def auto_register_plugins
+		Dir.foreach('./commands') do |entry|
+			fileparts = entry.split('.')
+			ext = fileparts[-1]
+			fileparts.delete_at(-1)
+			name = fileparts.join('.')
+
+			if(ext == 'rb')
+				@log.write("Adding "+name+"...")
+				require "./commands/"+entry
+
+				CommandHandler.register(Object::const_get(name.capitalize).new)
+			end
+		end
+	end
+
+	def get_logger
+		return @log
 	end
 
 	def connect
@@ -71,7 +96,9 @@ class Yak
 		@client.add_message_callback do |t|
 			if(t.body.to_s != '')
 				@log.write("Incoming " + t.type.to_s + " message from " + t.from.to_s + ": " + t.body.to_s)
-				send(t.from.to_s, Interact.greeting())
+				message = CommandHandler.new(self, t.type.to_s, t.from.to_s, t.body.to_s)
+				message.run
+				#send(t.from.to_s, Interact.greeting())
 			end
 		end
 	end
@@ -108,10 +135,6 @@ class Yak
 		@client.send(Jabber::Presence.new.set_show(type).set_status(message).set_priority(priority))
 	end
 
-	def add_callbacks
-		
-	end
-
 	def send(to, body, subject = '')
 		msg = Message::new
 		msg.to = to
@@ -127,14 +150,6 @@ class Yak
 		msg.body = body
 
 		@client.send(msg)
-	end
-
-	def receive
-
-	end
-
-	def status
-
 	end
 
 	def signoff
